@@ -249,7 +249,15 @@ export default function LightCard({
           </div>
         </div>
         <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0">
-          {isOn ? `${displayVal}%` : 'OFF'}
+          {light.error ? (
+            <span className="text-destructive" title={light.error}>
+              {light.code ? `ERR ${light.code}` : 'ERROR'}
+            </span>
+          ) : isOn ? (
+            `${displayVal}%`
+          ) : (
+            'OFF'
+          )}
         </span>
       </div>
 

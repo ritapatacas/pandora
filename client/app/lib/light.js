@@ -116,6 +116,8 @@ export function deviceToLight(device, status) {
     colorTemp,
     color,
     workMode,
+    error: device?.error || null,
+    code: device?.code || null,
   };
 }
 
