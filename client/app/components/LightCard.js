@@ -29,6 +29,26 @@ function tempToColor(colorTemp) {
   return `hsl(${hue}, ${sat}%, ${light}%)`;
 }
 
+function hexToRgb(hex) {
+  const clean = hex.replace('#', '');
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16),
+  };
+}
+
+function colorsAreClose(a, b) {
+  const rgbA = hexToRgb(a);
+  const rgbB = hexToRgb(b);
+  const dist = Math.sqrt(
+    Math.pow(rgbA.r - rgbB.r, 2) +
+      Math.pow(rgbA.g - rgbB.g, 2) +
+      Math.pow(rgbA.b - rgbB.b, 2)
+  );
+  return dist < 30; // tolerant threshold for RGB -> HSV -> RGB round-trip
+}
+
 function closestSwatchIndex(dx, dy) {
   const angle = (Math.atan2(dy, dx) * 180) / Math.PI; // -180..180, 0 = right
   const step = 360 / COLOR_SWATCHES.length;
@@ -61,6 +81,7 @@ export default function LightCard({
   const [radialOrigin, setRadialOrigin] = useState({ x: 0, y: 0 });
   const [activeSwatchIndex, setActiveSwatchIndex] = useState(null);
   const [optimisticColor, setOptimisticColor] = useState(null);
+  const [optimisticWorkMode, setOptimisticWorkMode] = useState(null);
   const activeSwatchIndexRef = useRef(null);
 
   const isDragging = dragValue !== null;
@@ -87,6 +108,7 @@ export default function LightCard({
       const swatch = COLOR_SWATCHES[index];
       if (swatch.hex === WHITE_SWATCH_HEX) {
         setOptimisticColor(null);
+        setOptimisticWorkMode('white');
         const brightness = light.brightness > 0 ? light.brightness : 100;
         onWhiteSelect(brightness, light.colorTemp);
         return;
@@ -102,6 +124,7 @@ export default function LightCard({
     setActiveSwatchIndex(null);
     activeSwatchIndexRef.current = null;
     lastSentSwatchRef.current = null;
+    setOptimisticWorkMode(null);
   }, []);
 
   const handlePointerDown = useCallback(
@@ -191,14 +214,18 @@ export default function LightCard({
   useEffect(() => clearLongPressTimer, []);
 
   useEffect(() => {
-    if (
-      optimisticColor &&
-      light.workMode === 'colour' &&
-      light.color?.toLowerCase() === optimisticColor.toLowerCase()
-    ) {
-      setOptimisticColor(null);
+    if (optimisticColor && light.workMode === 'colour') {
+      const real = light.color?.toLowerCase() ?? '';
+      const expected = optimisticColor.toLowerCase();
+      // Clear optimistic color once the device reports something close to it.
+      if (real === expected || colorsAreClose(real, expected)) {
+        setOptimisticColor(null);
+      }
     }
-  }, [light.workMode, light.color, optimisticColor]);
+    if (optimisticWorkMode && light.workMode && light.workMode !== 'colour') {
+      setOptimisticWorkMode(null);
+    }
+  }, [light.workMode, light.color, optimisticColor, optimisticWorkMode]);
 
   // Always close the swatch menu on release, even if the browser's own
   // long-press context menu forced the pointerup to fire outside our target.
@@ -216,7 +243,8 @@ export default function LightCard({
   const displayVal = isDragging ? dragValue : light.brightness;
   const displayColorTemp = isDragging ? dragColorTemp : light.colorTemp;
   const isOn = displayVal > 0;
-  const isColorMode = optimisticColor != null || light.workMode === 'colour';
+  const effectiveWorkMode = optimisticWorkMode || light.workMode;
+  const isColorMode = optimisticColor != null || effectiveWorkMode === 'colour';
   isColorModeRef.current = isColorMode;
   const fillColor = isColorMode ? (optimisticColor ?? light.color) : tempToColor(displayColorTemp);
 

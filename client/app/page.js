@@ -247,7 +247,7 @@ export default function Home() {
 
       <footer className="w-full max-w-lg mx-auto py-6 flex items-center justify-center gap-2 text-xs font-mono text-muted-foreground">
         <span className="inline-flex items-center gap-1">
-          <span className="text-sm leading-none">©</span>
+          <span className="text-sm leading-none font-overpass font-thin not-italic">©</span>
           <span>2026 Rita Patacas</span>
         </span>
         <span>|</span>
