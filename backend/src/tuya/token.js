@@ -49,8 +49,16 @@ export async function getToken({ baseUrl, clientId, secret }) {
     throw err;
   }
 
+  if (res.data?.success === false) {
+    console.error('[tuya] token API returned success:false:', JSON.stringify(res.data));
+    const err = new Error(res.data?.msg || `Tuya token API error: ${res.data?.code}`);
+    err.code = res.data?.code;
+    throw err;
+  }
+
   const result = res.data?.result;
   if (!result?.access_token) {
+    console.error('[tuya] token response missing access_token:', JSON.stringify(res.data));
     throw new Error('Tuya token response missing access_token');
   }
   return {
