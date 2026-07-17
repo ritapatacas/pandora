@@ -31,6 +31,17 @@ export async function getToken({ baseUrl, clientId, secret }) {
   const sign = signTokenRequest(clientId, secret, t, nonce, stringToSignValue);
 
   const fullUrl = `${baseUrl.replace(/\/$/, '')}${url}`;
+  console.error('[tuya] token request debug:', {
+    clientIdLen: clientId.length,
+    secretLen: secret.length,
+    baseUrl,
+    t,
+    nonce,
+    url,
+    stringToSignValue,
+    signLen: sign.length,
+    sign,
+  });
   const res = await axios.get(fullUrl, {
     headers: {
       client_id: clientId,
