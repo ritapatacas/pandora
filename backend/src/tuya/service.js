@@ -48,7 +48,7 @@ export function createTuyaService(env) {
             return { ...device, status: Array.isArray(status) ? status : [status] };
           } catch (e) {
             console.error(`[tuya] failed to fetch device ${id}:`, e.message, e.code ? `(code ${e.code})` : '');
-            return { id, name: id, online: false, status: [], error: e.message, code: e.code, debug: e.debug };
+            return { id, name: id, online: false, status: [], error: e.message, code: e.code };
           }
         })
       );

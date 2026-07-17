@@ -31,17 +31,6 @@ export async function getToken({ baseUrl, clientId, secret }) {
   const sign = signTokenRequest(clientId, secret, t, nonce, stringToSignValue);
 
   const fullUrl = `${baseUrl.replace(/\/$/, '')}${url}`;
-  console.error('[tuya] token request debug:', {
-    clientIdLen: clientId.length,
-    secretLen: secret.length,
-    baseUrl,
-    t,
-    nonce,
-    url,
-    stringToSignValue,
-    signLen: sign.length,
-    sign,
-  });
   const res = await axios.get(fullUrl, {
     headers: {
       client_id: clientId,
@@ -64,16 +53,13 @@ export async function getToken({ baseUrl, clientId, secret }) {
     console.error('[tuya] token API returned success:false:', JSON.stringify(res.data));
     const err = new Error(res.data?.msg || `Tuya token API error: ${res.data?.code}`);
     err.code = res.data?.code;
-    err.debug = { clientIdLen: clientId.length, secretLen: secret.length, t, nonce, sign, url: stringToSignValue };
     throw err;
   }
 
   const result = res.data?.result;
   if (!result?.access_token) {
     console.error('[tuya] token response missing access_token:', JSON.stringify(res.data));
-    const err = new Error('Tuya token response missing access_token');
-    err.debug = { clientIdLen: clientId.length, secretLen: secret.length, t, nonce, sign, url: stringToSignValue };
-    throw err;
+    throw new Error('Tuya token response missing access_token');
   }
   return {
     access_token: result.access_token,
