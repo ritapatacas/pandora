@@ -7,12 +7,12 @@ import { sendCommands } from './commands.js';
  * Device IDs: TUYA_DEVICE_IDS (comma-separated) or single TUYA_DEVICE_ID.
  */
 export function createTuyaService(env) {
-  const baseUrl = env.TUYA_BASE_URL || 'https://openapi.tuyaeu.com';
-  const clientId = env.TUYA_ACCESS_ID;
-  const secret = env.TUYA_ACCESS_SECRET;
+  const baseUrl = (env.TUYA_BASE_URL || 'https://openapi.tuyaeu.com').trim();
+  const clientId = (env.TUYA_ACCESS_ID || '').trim();
+  const secret = (env.TUYA_ACCESS_SECRET || '').trim();
   const deviceIdsFromEnv = env.TUYA_DEVICE_IDS
     ? env.TUYA_DEVICE_IDS.split(',').map((s) => s.trim()).filter(Boolean)
-    : (env.TUYA_DEVICE_ID ? [env.TUYA_DEVICE_ID] : []);
+    : (env.TUYA_DEVICE_ID ? [env.TUYA_DEVICE_ID.trim()] : []);
   const defaultDeviceId = deviceIdsFromEnv[0] || null;
 
   if (!clientId || !secret) {
