@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -34,6 +35,20 @@ export function createApp(env = process.env) {
     legacyHeaders: false,
   });
   app.use(limiter);
+
+  // Optional shared secret. When API_KEY is set, every /api route except
+  // /api/health requires the X-API-Key header. The Next.js server adds it.
+  const apiKey = (env.API_KEY || '').trim();
+  if (apiKey) {
+    const expected = Buffer.from(apiKey);
+    app.use('/api', (req, res, next) => {
+      if (req.path === '/health') return next();
+      const given = Buffer.from(req.get('x-api-key') || '');
+      const ok = given.length === expected.length && crypto.timingSafeEqual(given, expected);
+      if (!ok) return res.status(401).json({ error: 'Unauthorized' });
+      next();
+    });
+  }
 
   let lights;
   try {
