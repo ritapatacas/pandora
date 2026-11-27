@@ -10,6 +10,7 @@ if [ ! -f "$ROOT/backend/.env" ]; then
 fi
 
 cleanup() {
+  trap - EXIT INT TERM
   echo ""
   echo "Stopping..."
   kill 0

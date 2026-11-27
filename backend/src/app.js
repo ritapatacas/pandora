@@ -2,8 +2,18 @@ import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { createTuyaService } from './tuya/service.js';
+import { createHaService } from './ha/service.js';
 import { createDevicesRouter } from './routes/devices.js';
 import { createCommandsRouter } from './routes/commands.js';
+
+/**
+ * LIGHT_PROVIDER=ha   → Home Assistant (local network)
+ * LIGHT_PROVIDER=tuya → Tuya Cloud (default)
+ */
+function createLightService(env) {
+  const provider = (env.LIGHT_PROVIDER || 'tuya').trim().toLowerCase();
+  return provider === 'ha' ? createHaService(env) : createTuyaService(env);
+}
 
 export function createApp(env = process.env) {
   const app = express();
@@ -25,24 +35,24 @@ export function createApp(env = process.env) {
   });
   app.use(limiter);
 
-  let tuya;
+  let lights;
   try {
-    tuya = createTuyaService(env);
+    lights = createLightService(env);
   } catch (e) {
-    console.warn('Tuya service init failed:', e.message);
+    console.warn('Light service init failed:', e.message);
     app.use('/api/devices', (_req, res) =>
-      res.status(503).json({ error: 'Tuya not configured', detail: e.message })
+      res.status(503).json({ error: 'Light provider not configured', detail: e.message })
     );
     app.use('/api/commands', (_req, res) =>
-      res.status(503).json({ error: 'Tuya not configured', detail: e.message })
+      res.status(503).json({ error: 'Light provider not configured', detail: e.message })
     );
-    app.get('/api/health', (_req, res) => res.json({ ok: true, tuya: false }));
+    app.get('/api/health', (_req, res) => res.json({ ok: true, provider: false }));
     return app;
   }
 
-  app.use('/api/devices', createDevicesRouter(tuya));
-  app.use('/api/commands', createCommandsRouter(tuya));
-  app.get('/api/health', (_req, res) => res.json({ ok: true, tuya: true }));
+  app.use('/api/devices', createDevicesRouter(lights));
+  app.use('/api/commands', createCommandsRouter(lights));
+  app.get('/api/health', (_req, res) => res.json({ ok: true, provider: true }));
 
   return app;
 }
