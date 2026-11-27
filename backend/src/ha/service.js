@@ -89,7 +89,7 @@ export function createHaService(env) {
   /**
    * Turn the Tuya-style command list from routes/commands.js into one HA service call.
    */
-  function buildServiceCall(entityId, commands) {
+  function buildServiceCall(entityId, commands, { minK = DEFAULT_MIN_KELVIN, maxK = DEFAULT_MAX_KELVIN } = {}) {
     const last = (code) => commands.filter((c) => c.code === code).pop()?.value;
 
     const switchValue = last('switch_led');
@@ -110,7 +110,7 @@ export function createHaService(env) {
       data.rgb_color = hsvToRgb(h, s / 1000, 1);
       data.brightness = brightnessToHa(v);
     } else if (temp !== undefined) {
-      data.color_temp_kelvin = tempToKelvin(temp, DEFAULT_MIN_KELVIN, DEFAULT_MAX_KELVIN);
+      data.color_temp_kelvin = tempToKelvin(temp, minK, maxK);
     }
 
     if (brightness !== undefined && !useColour) {
@@ -159,7 +159,18 @@ export function createHaService(env) {
       if (!id) throw new Error('Entity ID required');
       const list = Array.isArray(commands) ? commands : [commands];
 
-      const serviceCall = buildServiceCall(id, list);
+      // Use the light's own kelvin range so sent and read values agree.
+      const hasTemp = list.some((c) => c.code === 'temp_value_v2');
+      let range = {};
+      if (hasTemp) {
+        const attrs = (await fetchState(id))?.attributes || {};
+        range = {
+          minK: attrs.min_color_temp_kelvin ?? DEFAULT_MIN_KELVIN,
+          maxK: attrs.max_color_temp_kelvin ?? DEFAULT_MAX_KELVIN,
+        };
+      }
+
+      const serviceCall = buildServiceCall(id, list, range);
       if (!serviceCall) {
         const err = new Error('No command supported by the Home Assistant provider');
         err.status = 400;
